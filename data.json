@@ -1,9 +1,10 @@
 {
+  "companies": ["MICRO LABS","EVERMARK","MANKIND","VETOQUINOL","ALLTEC","VIRBAC","SANZYNE","SERIN","KCP","PRESTIGE"],
+  "customers": [],
   "branches": [
     {
       "id": "main",
       "name": "Main Branch",
-      "companies": ["MICRO LABS","EVERMARK","MANKIND","VETOQUINOL","ALLTEC","VIRBAC","SANZYNE","SERIN","KCP","PRESTIGE"],
       "inventory": [],
       "purchases": [],
       "sales": [],
@@ -12,7 +13,6 @@
     {
       "id": "mudunepalli",
       "name": "Mudunepalli",
-      "companies": ["MICRO LABS","EVERMARK","MANKIND","VETOQUINOL","ALLTEC","VIRBAC","SANZYNE","SERIN","KCP","PRESTIGE"],
       "inventory": [
         { "id": "ml001", "company": "MICRO LABS", "name": "MYCOTOX", "unit": "25KG", "qty": 2, "buyPrice": 0, "sellPrice": 0, "expiry": "", "description": "", "howToUse": "" },
         { "id": "pr002", "company": "PRESTIGE", "name": "NOVA BLUE", "unit": "500GR", "qty": 0, "buyPrice": 0, "sellPrice": 0, "expiry": "", "description": "", "howToUse": "" }

@@ -66,7 +66,7 @@ function purchaseForm() {
       <div class="form-group">
         <label class="form-label">Company</label>
         <select class="form-input" id="p-company">
-          ${b.companies.map(c => `<option value="${c}">${c}</option>`).join('')}
+          ${getState().companies.map(c => `<option value="${c}">${c}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">

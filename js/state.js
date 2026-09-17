@@ -87,18 +87,16 @@ const DEFAULT_STATE = {
   branches: [
     {
       id: 'main', name: 'Main Branch',
-      companies: [...SEED_COMPANIES],
       inventory: [],
       purchases: [], sales: [], debits: [],
     },
     {
       id: 'mudunepalli', name: 'Mudunepalli',
-      companies: [...SEED_COMPANIES],
       inventory: SEED_INVENTORY,
       purchases: [], sales: [], debits: [],
     },
   ],
-  items: SEED_ITEMS,
+  companies: [...SEED_COMPANIES],
   customers: [],
   settings: { lowStockThreshold: 3 },
 };
@@ -128,7 +126,6 @@ function setState(data) {
   if (data && !data.branches) {
     const branch = {
       id: 'mudunepalli', name: 'Mudunepalli',
-      companies: data.companies || [...SEED_COMPANIES],
       inventory: data.inventory || [],
       purchases: data.purchases || [],
       sales:     data.sales     || [],
@@ -136,15 +133,24 @@ function setState(data) {
     };
     state = {
       branches: [
-        { id: 'main', name: 'Main Branch', companies: [...SEED_COMPANIES], inventory: [], purchases: [], sales: [], debits: [] },
+        { id: 'main', name: 'Main Branch', inventory: [], purchases: [], sales: [], debits: [] },
         branch,
       ],
+      companies: data.companies || [...SEED_COMPANIES],
+      customers: data.customers || [],
       settings: data.settings || { lowStockThreshold: 3 },
     };
   } else {
+    // migrate per-branch companies → global
+    let companies = data.companies || [...SEED_COMPANIES];
+    if (!data.companies && data.branches?.[0]?.companies) {
+      companies = data.branches[0].companies;
+    }
+    const branches = (data.branches || JSON.parse(JSON.stringify(DEFAULT_STATE.branches)))
+      .map(br => ({ ...br, companies: undefined }));
     state = {
-      branches: data.branches || JSON.parse(JSON.stringify(DEFAULT_STATE.branches)),
-      items: data.items || JSON.parse(JSON.stringify(DEFAULT_STATE.items)),
+      branches,
+      companies,
       customers: data.customers || [],
       settings: { ...DEFAULT_STATE.settings, ...(data.settings || {}) },
     };

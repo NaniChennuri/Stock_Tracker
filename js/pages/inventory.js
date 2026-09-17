@@ -38,7 +38,7 @@ function renderInventory() {
         oninput="onInvSearch(this.value)"/>
       <select class="filter-select" onchange="invFilter.company=this.value; renderInventory()">
         <option value="">All Companies</option>
-        ${b.companies.map(c => `<option value="${c}" ${invFilter.company===c?'selected':''}>${c}</option>`).join('')}
+        ${getState().companies.map(c => `<option value="${c}" ${invFilter.company===c?'selected':''}>${c}</option>`).join('')}
       </select>
     </div>
     ${Object.keys(groups).length === 0
@@ -183,7 +183,7 @@ function productForm(p) {
     <div class="form-group">
       <label class="form-label">Company</label>
       <select class="form-input" id="f-company">
-        ${b.companies.map(c => `<option value="${c}" ${p?.company===c?'selected':''}>${c}</option>`).join('')}
+        ${getState().companies.map(c => `<option value="${c}" ${p?.company===c?'selected':''}>${c}</option>`).join('')}
       </select>
     </div>
     <div class="form-group">
