@@ -18,7 +18,6 @@ function navigate(page) {
 }
 
 function renderNav() {
-  // sidebar (desktop)
   document.getElementById('sidebar').innerHTML = Object.entries(PAGES).map(([key, p]) => `
     <div class="nav-item ${activePage === key ? 'active' : ''}" onclick="navigate('${key}')">
       <span class="nav-icon">${p.icon}</span>
@@ -26,13 +25,29 @@ function renderNav() {
     </div>
   `).join('');
 
-  // bottom tabs (mobile)
   document.getElementById('bottom-nav').innerHTML = Object.entries(PAGES).map(([key, p]) => `
     <div class="tab-item ${activePage === key ? 'active' : ''}" onclick="navigate('${key}')">
       <span class="tab-icon">${p.icon}</span>
       <span class="tab-label">${p.label}</span>
     </div>
   `).join('');
+}
+
+// ── BRANCH SELECTOR ───────────────────────────────────────────────────────
+function renderBranchSelector() {
+  const branches = getState().branches;
+  const active   = getActiveBranch();
+  document.getElementById('branch-selector').innerHTML = `
+    <select class="branch-select" onchange="switchBranch(this.value)">
+      ${branches.map(b => `<option value="${b.id}" ${b.id === active.id ? 'selected' : ''}>${b.name}</option>`).join('')}
+    </select>
+  `;
+}
+
+function switchBranch(id) {
+  setActiveBranch(id);
+  renderBranchSelector();
+  PAGES[activePage].render();
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────
@@ -74,6 +89,8 @@ function resetToken() {
 
 // ── APP BOOT ──────────────────────────────────────────────────────────────
 function renderApp() {
+  loadActiveBranch();
+  renderBranchSelector();
   renderNav();
   navigate('dashboard');
 }

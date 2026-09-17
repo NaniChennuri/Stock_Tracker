@@ -78,73 +78,30 @@ const SEED_INVENTORY = [
   { id:'pr002', company:'PRESTIGE',    name:'NOVA BLUE',         unit:'500GR', qty:0,   buyPrice:0, sellPrice:0, expiry:'', description:'', howToUse:'' },
 ];
 
-const SEED_SALES = [
-  {
-    id: 'sale001', date: '2026-09-03', customer: 'Ravi Farms',
-    paymentType: 'paid',
-    items: [
-      { productId: 'ml004', name: 'TRIPLE SHIELD', unit: '1KG', qty: 2, price: 850 },
-      { productId: 'vq005', name: 'BIOVET-YC',     unit: '25KG', qty: 1, price: 3200 },
-    ],
-    total: 4900
-  },
-  {
-    id: 'sale002', date: '2026-09-04', customer: 'Krishna Aqua',
-    paymentType: 'debit',
-    items: [
-      { productId: 'sz001', name: 'UNI-ECOSENSE', unit: '500GR', qty: 4, price: 420 },
-      { productId: 'sr003', name: 'DEFENDER-G',   unit: '1KG',   qty: 2, price: 650 },
-    ],
-    total: 2980
-  },
-  {
-    id: 'sale003', date: '2026-09-05', customer: 'Sai Hatchery',
-    paymentType: 'debit',
-    items: [
-      { productId: 'vb006', name: 'ECO MARINE-80', unit: '1KG', qty: 3, price: 780 },
-      { productId: 'at006', name: 'BLUEPRINT',     unit: '1KG', qty: 2, price: 560 },
-    ],
-    total: 3460
-  },
-  {
-    id: 'sale004', date: '2026-09-06', customer: 'Ravi Farms',
-    paymentType: 'paid',
-    items: [
-      { productId: 'kp001', name: 'DELTIN-2.8%', unit: '1LT', qty: 3, price: 490 },
-    ],
-    total: 1470
-  },
-];
-
-const SEED_DEBITS = [
-  {
-    id: 'deb001', saleId: 'sale002', date: '2026-09-04',
-    customer: 'Krishna Aqua', total: 2980, paid: 1000,
-    dueDate: '2026-09-20',
-    payments: [
-      { date: '2026-09-06', amount: 1000, note: 'Partial cash' }
-    ]
-  },
-  {
-    id: 'deb002', saleId: 'sale003', date: '2026-09-05',
-    customer: 'Sai Hatchery', total: 3460, paid: 0,
-    dueDate: '',
-    payments: []
-  },
-];
+const SEED_COMPANIES = ['MICRO LABS','EVERMARK','MANKIND','VETOQUINOL','ALLTEC','VIRBAC','SANZYNE','SERIN','KCP','PRESTIGE'];
 
 const DEFAULT_STATE = {
-  companies:  ['MICRO LABS','EVERMARK','MANKIND','VETOQUINOL','ALLTEC','VIRBAC','SANZYNE','SERIN','KCP','PRESTIGE'],
-  inventory:  SEED_INVENTORY,
-  purchases:  [],
-  sales:      SEED_SALES,
-  debits:     SEED_DEBITS,
-  settings:   { lowStockThreshold: 3 },
+  branches: [
+    {
+      id: 'main', name: 'Main Branch',
+      companies: [...SEED_COMPANIES],
+      inventory: [],
+      purchases: [], sales: [], debits: [],
+    },
+    {
+      id: 'mudunepalli', name: 'Mudunepalli',
+      companies: [...SEED_COMPANIES],
+      inventory: SEED_INVENTORY,
+      purchases: [], sales: [], debits: [],
+    },
+  ],
+  settings: { lowStockThreshold: 3 },
 };
 
-let state     = { ...DEFAULT_STATE };
-let ghToken   = '';
-let ghFileSHA = '';
+let state       = JSON.parse(JSON.stringify(DEFAULT_STATE));
+let ghToken     = '';
+let ghFileSHA   = '';
+let activeBranchId = 'mudunepalli';
 
 function getToken()    { return ghToken; }
 function setToken(t)   { ghToken = t; localStorage.setItem('aq_token', t); }
@@ -154,9 +111,49 @@ function saveLocal()   { /* data lives in GitHub only */ }
 function loadLocal()   { /* data lives in GitHub only */ }
 
 function getState()      { return state; }
-function setState(data)  { state = { ...DEFAULT_STATE, ...data }; saveLocal(); }
+function setState(data) {
+  // migrate old flat structure → branch structure
+  if (data && !data.branches) {
+    const branch = {
+      id: 'mudunepalli', name: 'Mudunepalli',
+      companies: data.companies || [...SEED_COMPANIES],
+      inventory: data.inventory || [],
+      purchases: data.purchases || [],
+      sales:     data.sales     || [],
+      debits:    data.debits    || [],
+    };
+    state = {
+      branches: [
+        { id: 'main', name: 'Main Branch', companies: [...SEED_COMPANIES], inventory: [], purchases: [], sales: [], debits: [] },
+        branch,
+      ],
+      settings: data.settings || { lowStockThreshold: 3 },
+    };
+  } else {
+    state = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...data };
+  }
+  saveLocal();
+}
+
 function getSHA()        { return ghFileSHA; }
 function setSHA(sha)     { ghFileSHA = sha; }
+
+function getActiveBranch() {
+  return state.branches.find(b => b.id === activeBranchId) || state.branches[0];
+}
+
+function setActiveBranch(id) {
+  activeBranchId = id;
+  localStorage.setItem('aq_branch', id);
+}
+
+function loadActiveBranch() {
+  activeBranchId = localStorage.getItem('aq_branch') || (state.branches[0]?.id || 'main');
+  // ensure it still exists
+  if (!state.branches.find(b => b.id === activeBranchId)) {
+    activeBranchId = state.branches[0]?.id || 'main';
+  }
+}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
 function uid() {
