@@ -82,12 +82,16 @@ async function bootApp() {
   showToast('Loading data…', 'info');
   const ok = await ghLoad();
   if (!ok) {
-    // fallback: load data.json from same origin (works when running locally)
+    // try localStorage backup first
+    const local = localStorage.getItem('aq_data');
+    if (local) {
+      try { setState(JSON.parse(local)); showToast('✓ Data loaded (local backup)', 'ok'); renderApp(); return; } catch(e) {}
+    }
+    // fallback: load data.json from same origin
     try {
       const res = await fetch('data.json');
       if (res.ok) {
-        const data = await res.json();
-        setState(data);
+        setState(await res.json());
         showToast('✓ Data loaded (local)', 'ok');
       } else {
         showToast('Failed to load data', 'err');

@@ -108,11 +108,15 @@ function renderDashboard() {
     ${todayPurchases.length > 0 ? `
     <div class="section-title">Today's Purchases</div>
     <div class="history-list">
-      ${todayPurchases.map(p => `
+      ${todayPurchases.map(p => {
+        const ptotal = p.items.reduce((a,i) => a + (i.qty * (i.buyPrice||0)), 0);
+        return `
         <div class="history-row">
           <div class="history-main">${p.company}</div>
           <div class="history-meta">${p.items.length} item${p.items.length>1?'s':''}</div>
-        </div>`).join('')}
+          <div class="history-amount blue">${ptotal > 0 ? fmtCurrency(ptotal) : '—'}</div>
+        </div>`;
+      }).join('')}
     </div>` : ''}
   `;
 }

@@ -1,18 +1,32 @@
 // ── DEBITS (Outstanding Payments) ─────────────────────────────────────────
 function renderDebits() {
-  const b           = getActiveBranch();
-  const debits      = (b.debits || []).slice().reverse();
-  const outstanding = debits.filter(d => d.paid < d.total);
-  const cleared     = debits.filter(d => d.paid >= d.total);
+  const b      = getActiveBranch();
+  const all    = (b.debits || []).slice().reverse();
+  const outstanding = all.filter(d => d.paid < d.total);
+  const cleared     = all.filter(d => d.paid >= d.total);
+
+  // split outstanding into overdue and upcoming
+  const overdue  = outstanding.filter(d => d.dueDate && daysUntil(d.dueDate) < 0);
+  const upcoming = outstanding.filter(d => !d.dueDate || daysUntil(d.dueDate) >= 0);
+
+  const totalDue = outstanding.reduce((a, d) => a + (d.total - d.paid), 0);
 
   document.getElementById('app-content').innerHTML = `
     <div class="page-header"><div class="page-title">Debits</div></div>
+    ${outstanding.length > 0 ? `<div class="filter-summary">Outstanding: <span class="amber">${fmtCurrency(totalDue)}</span> across ${outstanding.length} customer${outstanding.length>1?'s':''}</div>` : ''}
+
     ${outstanding.length === 0 && cleared.length === 0 ? `<div class="empty-msg">No debit records yet.</div>` : ''}
-    ${outstanding.length > 0 ? `
-      <div class="section-title">Outstanding (${outstanding.length})</div>
-      <div class="history-list">${outstanding.map(d => debitCard(d)).join('')}</div>` : ''}
+
+    ${overdue.length > 0 ? `
+      <div class="section-title" style="color:var(--red)">⚠ Overdue (${overdue.length})</div>
+      <div class="history-list">${overdue.map(d => debitCard(d)).join('')}</div>` : ''}
+
+    ${upcoming.length > 0 ? `
+      <div class="section-title">Outstanding (${upcoming.length})</div>
+      <div class="history-list">${upcoming.map(d => debitCard(d)).join('')}</div>` : ''}
+
     ${cleared.length > 0 ? `
-      <div class="section-title" style="margin-top:20px">Cleared</div>
+      <div class="section-title" style="margin-top:20px">Cleared (${cleared.length})</div>
       <div class="history-list">${cleared.map(d => debitCard(d, true)).join('')}</div>` : ''}
   `;
 }
@@ -74,8 +88,12 @@ function openDebitDetail(id) {
       <div class="form-group" style="margin-top:14px">
         <label class="form-label">Record Payment</label>
         <div class="form-row">
-          <input class="form-input" id="pay-amount" type="number" min="1" placeholder="Amount ₹" max="${balance}"/>
+          <input class="form-input" id="pay-amount" type="number" min="1" placeholder="Amount ₹" max="${balance}"
+            oninput="validatePayAmount(this, ${balance})"/>
           <input class="form-input" id="pay-note" placeholder="Note (optional)"/>
+        </div>
+        <div id="pay-amount-warn" style="font-size:12px;color:var(--amber);margin-top:4px;display:none">
+          Amount exceeds balance of ${fmtCurrency(balance)} — will be capped.
         </div>
         <div style="margin-top:8px">
           <label class="form-label">Update Due Date (optional)</label>
@@ -88,6 +106,11 @@ function openDebitDetail(id) {
       </div>` : `
       <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>`}
   `);
+}
+
+function validatePayAmount(input, balance) {
+  const warn = document.getElementById('pay-amount-warn');
+  if (warn) warn.style.display = parseFloat(input.value) > balance ? 'block' : 'none';
 }
 
 function recordDebitPayment(id) {

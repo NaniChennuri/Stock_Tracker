@@ -47,6 +47,8 @@ function renderBranchSelector() {
 function switchBranch(id) {
   setActiveBranch(id);
   invFilter.search = ''; invFilter.company = '';
+  purchaseFilter = { from: '', to: '', company: '' };
+  salesFilter    = { from: '', to: '', customer: '', paymentType: '' };
   renderBranchSelector();
   PAGES[activePage].render();
 }
@@ -92,7 +94,14 @@ function renderApp() {
   loadActiveBranch();
   renderBranchSelector();
   renderNav();
+  renderTopbarDate();
+  setInterval(renderTopbarDate, 60000);
   navigate('dashboard');
+}
+
+function renderTopbarDate() {
+  const el = document.getElementById('topbar-date');
+  if (el) el.textContent = fmtDateLong();
 }
 
 // ── KEYBOARD ──────────────────────────────────────────────────────────────

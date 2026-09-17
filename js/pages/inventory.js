@@ -69,10 +69,19 @@ function renderInventory() {
 }
 
 function openProductDetail(id) {
-  const p = getActiveBranch().inventory.find(x => x.id === id);
+  const b = getActiveBranch();
+  const p = b.inventory.find(x => x.id === id);
   if (!p) return;
   const expDays = daysUntil(p.expiry);
   const margin  = p.sellPrice && p.buyPrice ? p.sellPrice - p.buyPrice : null;
+  // build sales history for this product
+  const salesHistory = [];
+  b.sales.forEach(s => {
+    s.items.forEach(item => {
+      if (item.productId === id) salesHistory.push({ date: s.date, customer: s.customer, soldQty: item.qty, price: item.price });
+    });
+  });
+  salesHistory.sort((a, b) => a.date.localeCompare(b.date));
   showModal(`
     <div class="modal-header">
       <div><div class="modal-title">${p.name}</div><div class="modal-sub">${p.company} · ${p.unit}</div></div>
@@ -87,11 +96,78 @@ function openProductDetail(id) {
     </div>
     ${p.description ? `<div class="detail-section"><div class="detail-sec-title">Description</div><div class="detail-text">${p.description}</div></div>` : ''}
     ${p.howToUse    ? `<div class="detail-section"><div class="detail-sec-title">How to Use</div><div class="detail-text">${p.howToUse}</div></div>` : ''}
+    ${salesHistory.length > 0 ? `
+      <div class="detail-section">
+        <div class="detail-sec-title">Sales History (${salesHistory.length})</div>
+        <div class="detail-items">
+          ${salesHistory.slice(-5).reverse().map(s => `
+            <div class="detail-item-row">
+              <span>${fmtDate(s.date)}</span>
+              <span>${s.customer || 'Unknown'}</span>
+              <span>× ${s.soldQty}</span>
+              <span class="green">${fmtCurrency(s.price)}</span>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
     <div class="modal-actions">
+      <button class="btn-secondary" onclick="openStockAdjust('${p.id}')">Adjust Stock</button>
       <button class="btn-secondary" onclick="openEditProduct('${p.id}')">Edit</button>
       <button class="btn-danger"    onclick="confirmDeleteProduct('${p.id}')">Delete</button>
     </div>
   `);
+}
+
+function openStockAdjust(id) {
+  const p = getActiveBranch().inventory.find(x => x.id === id);
+  if (!p) return;
+  showModal(`
+    <div class="modal-header">
+      <div><div class="modal-title">Adjust Stock</div><div class="modal-sub">${p.name} ${p.unit} · Current: ${p.qty}</div></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Adjustment Type</label>
+      <div class="payment-toggle">
+        <div class="pay-opt active" id="adj-add" onclick="setAdjType('add')">+ Add</div>
+        <div class="pay-opt debit" id="adj-sub" onclick="setAdjType('sub')">- Remove</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Quantity</label>
+        <input class="form-input" id="adj-qty" type="number" min="1" placeholder="Qty"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason</label>
+        <input class="form-input" id="adj-reason" placeholder="e.g. Damaged, Count fix"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="openProductDetail('${id}')">Back</button>
+      <button class="btn-primary" onclick="saveStockAdjust('${id}')">Save</button>
+    </div>
+  `);
+}
+
+let _adjType = 'add';
+function setAdjType(type) {
+  _adjType = type;
+  document.getElementById('adj-add').classList.toggle('active', type === 'add');
+  document.getElementById('adj-sub').classList.toggle('active', type === 'sub');
+}
+
+function saveStockAdjust(id) {
+  const qty = parseInt(document.getElementById('adj-qty').value) || 0;
+  if (qty <= 0) { showToast('Enter a valid quantity', 'err'); return; }
+  const reason = document.getElementById('adj-reason').value.trim();
+  const b = getActiveBranch();
+  const idx = b.inventory.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  const before = b.inventory[idx].qty;
+  b.inventory[idx].qty = _adjType === 'add' ? before + qty : Math.max(0, before - qty);
+  saveLocal(); closeModal();
+  showToast(`Stock ${_adjType === 'add' ? 'added' : 'removed'}: ${qty} unit${qty>1?'s':''}${reason?' ('+reason+')':''}`, 'ok');
+  renderInventory();
 }
 
 function openAddProduct()    { showModal(productForm(null)); }
@@ -136,13 +212,15 @@ function saveProduct(id) {
   const name = document.getElementById('f-name').value.trim();
   if (!name) { showToast('Product name is required', 'err'); return; }
   const b = getActiveBranch();
+  const existing = id ? b.inventory.find(x => x.id === id) : null;
+  const qtyRaw = document.getElementById('f-qty').value;
   const product = {
     id: id || uid(),
     company:     document.getElementById('f-company').value,
     name:        name.toUpperCase(),
     unit:        document.getElementById('f-unit').value.trim().toUpperCase(),
-    qty:         parseInt(document.getElementById('f-qty').value) || 0,
-    buyPrice:    parseFloat(document.getElementById('f-buy').value) || 0,
+    qty:         qtyRaw !== '' ? (parseInt(qtyRaw) || 0) : (existing ? existing.qty : 0),
+    buyPrice:    parseFloat(document.getElementById('f-buy').value)  || 0,
     sellPrice:   parseFloat(document.getElementById('f-sell').value) || 0,
     expiry:      document.getElementById('f-expiry').value || '',
     description: document.getElementById('f-desc').value.trim(),

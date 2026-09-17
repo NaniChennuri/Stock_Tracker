@@ -37,6 +37,20 @@ function renderSettings() {
       <button class="btn-primary" onclick="addCompany()">Add</button>
     </div>
 
+    <div class="section-title" style="margin-top:28px">Customers</div>
+    <div class="company-list">
+      ${(s.customers||[]).map(c => `
+        <div class="company-tag-row">
+          <span class="company-tag">${c.name}</span>
+          <button class="btn-remove-row" onclick="deleteCustomer('${c.id}')">✕</button>
+        </div>`).join('')}
+      ${(s.customers||[]).length === 0 ? '<div style="font-size:12px;color:var(--muted);padding:4px 0">No customers yet. They are added automatically when you record a sale.</div>' : ''}
+    </div>
+    <div class="add-company-row">
+      <input class="form-input" id="new-customer" placeholder="Add customer name..." style="flex:1"/>
+      <button class="btn-primary" onclick="addCustomer()">Add</button>
+    </div>
+
     <div class="section-title" style="margin-top:28px">Low Stock Threshold</div>
     <div class="form-row" style="align-items:center;gap:12px">
       <input class="form-input" id="threshold-input" type="number" min="1"
@@ -168,4 +182,29 @@ function confirmResetToken() {
       <button class="btn-danger"    onclick="resetToken()">Reset</button>
     </div>
   `);
+}
+
+// ── CUSTOMER MANAGEMENT ─────────────────────────────────────────────────────
+function addCustomer() {
+  const input = document.getElementById('new-customer');
+  const name  = input.value.trim();
+  if (!name) return;
+  const s = getState();
+  if (!s.customers) s.customers = [];
+  const norm = normalizeCustomerName(name);
+  if (s.customers.some(c => normalizeCustomerName(c.name) === norm)) {
+    showToast('Customer already exists', 'err'); return;
+  }
+  s.customers.push({ id: uid(), name });
+  saveLocal(); input.value = '';
+  showToast('Customer added', 'ok');
+  renderSettings();
+}
+
+function deleteCustomer(id) {
+  const s = getState();
+  s.customers = (s.customers || []).filter(c => c.id !== id);
+  saveLocal();
+  showToast('Customer removed', 'ok');
+  renderSettings();
 }

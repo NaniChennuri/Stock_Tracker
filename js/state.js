@@ -95,6 +95,7 @@ const DEFAULT_STATE = {
       purchases: [], sales: [], debits: [],
     },
   ],
+  customers: [],
   settings: { lowStockThreshold: 3 },
 };
 
@@ -107,8 +108,15 @@ function getToken()    { return ghToken; }
 function setToken(t)   { ghToken = t; localStorage.setItem('aq_token', t); }
 function loadToken()   { ghToken = localStorage.getItem('aq_token') || ''; }
 
-function saveLocal()   { /* data lives in GitHub only */ }
-function loadLocal()   { /* data lives in GitHub only */ }
+function saveLocal() {
+  try { localStorage.setItem('aq_data', JSON.stringify(getState())); } catch(e) {}
+}
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem('aq_data');
+    if (raw) setState(JSON.parse(raw));
+  } catch(e) {}
+}
 
 function getState()      { return state; }
 function setState(data) {
@@ -132,6 +140,7 @@ function setState(data) {
   } else {
     state = {
       branches: data.branches || JSON.parse(JSON.stringify(DEFAULT_STATE.branches)),
+      customers: data.customers || [],
       settings: { ...DEFAULT_STATE.settings, ...(data.settings || {}) },
     };
   }
@@ -163,8 +172,13 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// All dates in IST (UTC+5:30)
+function istNow() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+}
+
 function todayStr() {
-  const d = new Date();
+  const d = istNow();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
@@ -173,12 +187,26 @@ function fmtDate(str) {
   return new Date(str + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function fmtDateLong() {
+  return istNow().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'Asia/Kolkata' });
+}
+
 function fmtCurrency(n) {
   return '₹' + Number(n || 0).toLocaleString('en-IN');
 }
 
 function daysUntil(dateStr) {
   if (!dateStr) return null;
-  const diff = new Date(dateStr + 'T00:00:00') - new Date();
-  return Math.ceil(diff / 86400000);
+  const ist = istNow();
+  const today = new Date(ist.getFullYear(), ist.getMonth(), ist.getDate());
+  const target = new Date(dateStr + 'T00:00:00');
+  return Math.ceil((target - today) / 86400000);
+}
+
+function getCustomers() {
+  return (getState().customers || []);
+}
+
+function normalizeCustomerName(name) {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
 }

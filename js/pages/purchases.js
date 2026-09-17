@@ -1,18 +1,40 @@
 // ── PURCHASES (Stock In) ──────────────────────────────────────────────────
 let purchaseItems = [];
+let purchaseFilter = { from: '', to: '', company: '' };
 
 function renderPurchases() {
   const b = getActiveBranch();
-  const history = [...b.purchases].reverse();
+  let history = [...b.purchases].reverse();
+
+  if (purchaseFilter.from)    history = history.filter(p => p.date >= purchaseFilter.from);
+  if (purchaseFilter.to)      history = history.filter(p => p.date <= purchaseFilter.to);
+  if (purchaseFilter.company) history = history.filter(p => p.company === purchaseFilter.company);
+
+  const total = history.reduce((a, p) => a + p.items.reduce((x, i) => x + (i.qty * (i.buyPrice||0)), 0), 0);
+
   document.getElementById('app-content').innerHTML = `
     <div class="page-header">
       <div class="page-title">Purchases</div>
       <button class="btn-primary" onclick="openAddPurchase()">+ New</button>
     </div>
+    <div class="filter-bar">
+      <input class="filter-input" type="date" placeholder="From" value="${purchaseFilter.from}"
+        onchange="purchaseFilter.from=this.value; renderPurchases()" style="flex:none;width:140px"/>
+      <input class="filter-input" type="date" placeholder="To" value="${purchaseFilter.to}"
+        onchange="purchaseFilter.to=this.value; renderPurchases()" style="flex:none;width:140px"/>
+      <select class="filter-select" onchange="purchaseFilter.company=this.value; renderPurchases()">
+        <option value="">All Companies</option>
+        ${b.companies.map(c => `<option value="${c}" ${purchaseFilter.company===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+      ${(purchaseFilter.from||purchaseFilter.to||purchaseFilter.company) ? `<button class="btn-secondary" style="white-space:nowrap" onclick="purchaseFilter={from:'',to:'',company:''};renderPurchases()">✕ Clear</button>` : ''}
+    </div>
+    ${history.length > 0 ? `<div class="filter-summary">Showing ${history.length} record${history.length>1?'s':''} · Total: <span class="blue">${fmtCurrency(total)}</span></div>` : ''}
     ${history.length === 0
-      ? `<div class="empty-msg">No purchases recorded yet.</div>`
+      ? `<div class="empty-msg">No purchases found.</div>`
       : `<div class="history-list">
-          ${history.map(p => `
+          ${history.map(p => {
+            const ptotal = p.items.reduce((a,i) => a + (i.qty * (i.buyPrice||0)), 0);
+            return `
             <div class="history-card" onclick="openPurchaseDetail('${p.id}')">
               <div class="history-card-top">
                 <span class="history-company">${p.company}</span>
@@ -23,9 +45,10 @@ function renderPurchases() {
                   ${p.items.slice(0,3).map(i => `${i.name} ${i.unit} × ${i.qty}`).join(', ')}
                   ${p.items.length > 3 ? ` +${p.items.length-3} more` : ''}
                 </span>
-                <span class="history-total blue">${fmtCurrency(p.items.reduce((a,i) => a + (i.qty * (i.buyPrice||0)), 0))}</span>
+                <span class="history-total blue">${fmtCurrency(ptotal)}</span>
               </div>
-            </div>`).join('')}
+            </div>`;
+          }).join('')}
         </div>`}
   `;
 }
@@ -96,6 +119,7 @@ function addPurchaseItemRow() {
   document.getElementById('purchase-items').innerHTML = purchaseItems.map((item,i) => purchaseItemRow(item,i)).join('');
 }
 function removePurchaseRow(i) {
+  syncPurchaseItemsFromDOM();
   purchaseItems.splice(i,1);
   document.getElementById('purchase-items').innerHTML = purchaseItems.map((item,i) => purchaseItemRow(item,i)).join('');
 }
@@ -109,17 +133,10 @@ function onPurchaseProductSelect(sel, i) {
 function savePurchase() {
   const company = document.getElementById('p-company').value;
   const date    = document.getElementById('p-date').value;
+  if (!date) { showToast('Select a date', 'err'); return; }
   const b       = getActiveBranch();
 
-  document.querySelectorAll('#purchase-items .item-row').forEach((row, i) => {
-    const sel = row.querySelector('.item-product');
-    const p   = b.inventory.find(x => x.id === sel.value);
-    purchaseItems[i].productId = sel.value;
-    purchaseItems[i].qty       = parseInt(row.querySelector('.item-qty').value) || 0;
-    purchaseItems[i].buyPrice  = parseFloat(row.querySelector('.item-price').value) || 0;
-    if (p) { purchaseItems[i].name = p.name; purchaseItems[i].unit = p.unit; }
-  });
-
+  syncPurchaseItemsFromDOM();
   const valid = purchaseItems.filter(i => i.productId && i.qty > 0);
   if (valid.length === 0) { showToast('Add at least one item', 'err'); return; }
 
@@ -140,6 +157,7 @@ function savePurchase() {
 function openPurchaseDetail(id) {
   const p = getActiveBranch().purchases.find(x => x.id === id);
   if (!p) return;
+  const total = p.items.reduce((a,i) => a + (i.qty * (i.buyPrice||0)), 0);
   showModal(`
     <div class="modal-header">
       <div><div class="modal-title">${p.company}</div><div class="modal-sub">${fmtDate(p.date)}</div></div>
@@ -154,7 +172,7 @@ function openPurchaseDetail(id) {
           <span class="blue">${i.buyPrice ? fmtCurrency(i.qty * i.buyPrice) : '—'}</span>
         </div>`).join('')}
     </div>
-    <div class="detail-total">Total: <span class="blue">${fmtCurrency(p.items.reduce((a,i) => a + (i.qty * (i.buyPrice||0)), 0))}</span></div>
+    <div class="detail-total">Total: <span class="blue">${fmtCurrency(total)}</span></div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Close</button>
       <button class="btn-danger"    onclick="deletePurchase('${id}')">Delete</button>
