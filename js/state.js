@@ -80,6 +80,9 @@ const SEED_INVENTORY = [
 
 const SEED_COMPANIES = ['MICRO LABS','EVERMARK','MANKIND','VETOQUINOL','ALLTEC','VIRBAC','SANZYNE','SERIN','KCP','PRESTIGE'];
 
+// Global item catalog (shared across all branches)
+const SEED_ITEMS = SEED_INVENTORY.map(p => ({ id: p.id, company: p.company, name: p.name, unit: p.unit }));
+
 const DEFAULT_STATE = {
   branches: [
     {
@@ -95,6 +98,7 @@ const DEFAULT_STATE = {
       purchases: [], sales: [], debits: [],
     },
   ],
+  items: SEED_ITEMS,
   customers: [],
   settings: { lowStockThreshold: 3 },
 };
@@ -140,6 +144,7 @@ function setState(data) {
   } else {
     state = {
       branches: data.branches || JSON.parse(JSON.stringify(DEFAULT_STATE.branches)),
+      items: data.items || JSON.parse(JSON.stringify(DEFAULT_STATE.items)),
       customers: data.customers || [],
       settings: { ...DEFAULT_STATE.settings, ...(data.settings || {}) },
     };
