@@ -24,7 +24,7 @@ function renderDashboard() {
 
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-val">${inv.length}</div><div class="stat-lbl">Products</div></div>
-      <div class="stat-card"><div class="stat-val blue">${b.companies.length}</div><div class="stat-lbl">Companies</div></div>
+      <div class="stat-card"><div class="stat-val blue">${s.companies.length}</div><div class="stat-lbl">Companies</div></div>
       <div class="stat-card"><div class="stat-val green">${todaySales.length}</div><div class="stat-lbl">Today's Sales</div></div>
       <div class="stat-card"><div class="stat-val amber">${fmtCurrency(todayTotal)}</div><div class="stat-lbl">Today's Revenue</div></div>
       ${totalDebit > 0 ? `<div class="stat-card" style="cursor:pointer" onclick="showDebitsModal()"><div class="stat-val amber">${fmtCurrency(totalDebit)}</div><div class="stat-lbl">Outstanding Debit</div></div>` : ''}
@@ -61,7 +61,7 @@ function renderDashboard() {
 
       <div class="dash-card blue" onclick="showCompanySummaryModal()">
         <div class="dash-card-icon">🏢</div>
-        <div class="dash-card-body"><div class="dash-card-title">Company Summary</div><div class="dash-card-sub">${b.companies.length} companies · ${inv.length} products</div></div>
+        <div class="dash-card-body"><div class="dash-card-title">Company Summary</div><div class="dash-card-sub">${s.companies.length} companies · ${inv.length} products</div></div>
         <div class="dash-card-arrow">›</div>
       </div>
     </div>

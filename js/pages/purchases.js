@@ -24,7 +24,7 @@ function renderPurchases() {
         onchange="purchaseFilter.to=this.value; renderPurchases()" style="flex:none;width:140px"/>
       <select class="filter-select" onchange="purchaseFilter.company=this.value; renderPurchases()">
         <option value="">All Companies</option>
-        ${b.companies.map(c => `<option value="${c}" ${purchaseFilter.company===c?'selected':''}>${c}</option>`).join('')}
+        ${getState().companies.map(c => `<option value="${c}" ${purchaseFilter.company===c?'selected':''}>${c}</option>`).join('')}
       </select>
       ${(purchaseFilter.from||purchaseFilter.to||purchaseFilter.company) ? `<button class="btn-secondary" style="white-space:nowrap" onclick="purchaseFilter={from:'',to:'',company:''};renderPurchases()">✕ Clear</button>` : ''}
     </div>
