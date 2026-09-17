@@ -78,10 +78,11 @@ async function checkPin() {
 // ── BOOT APP ──────────────────────────────────────────────────────────────
 async function bootApp() {
   document.getElementById('screen-pin').style.display  = 'none';
-  document.getElementById('screen-app').style.display  = 'block';
+  document.getElementById('screen-app').style.display  = 'flex';
   showToast('Loading data…', 'info');
   const ok = await ghLoad();
-  showToast(ok ? '✓ Data loaded' : '✓ Using local data', ok ? 'ok' : 'warn');
+  if (!ok) showToast('Failed to load data from GitHub', 'err');
+  else showToast('✓ Data loaded', 'ok');
   renderApp();
 }
 
