@@ -1,5 +1,16 @@
 // ── INVENTORY ─────────────────────────────────────────────────────────────
 let invFilter = { company: '', search: '' };
+let _invSearchTimer = null;
+
+function onInvSearch(val) {
+  invFilter.search = val;
+  clearTimeout(_invSearchTimer);
+  _invSearchTimer = setTimeout(() => {
+    renderInventory();
+    const el = document.querySelector('.filter-input');
+    if (el) { el.focus(); el.setSelectionRange(val.length, val.length); }
+  }, 200);
+}
 
 function renderInventory() {
   const b         = getActiveBranch();
@@ -24,7 +35,7 @@ function renderInventory() {
     </div>
     <div class="filter-bar">
       <input class="filter-input" placeholder="Search product..." value="${invFilter.search}"
-        oninput="invFilter.search=this.value; renderInventory()"/>
+        oninput="onInvSearch(this.value)"/>
       <select class="filter-select" onchange="invFilter.company=this.value; renderInventory()">
         <option value="">All Companies</option>
         ${b.companies.map(c => `<option value="${c}" ${invFilter.company===c?'selected':''}>${c}</option>`).join('')}

@@ -18,9 +18,12 @@ function renderPurchases() {
                 <span class="history-company">${p.company}</span>
                 <span class="history-date">${fmtDate(p.date)}</span>
               </div>
-              <div class="history-items-preview">
-                ${p.items.slice(0,3).map(i => `${i.name} ${i.unit} × ${i.qty}`).join(', ')}
-                ${p.items.length > 3 ? ` +${p.items.length-3} more` : ''}
+              <div class="history-card-bottom">
+                <span class="history-items-preview">
+                  ${p.items.slice(0,3).map(i => `${i.name} ${i.unit} × ${i.qty}`).join(', ')}
+                  ${p.items.length > 3 ? ` +${p.items.length-3} more` : ''}
+                </span>
+                <span class="history-total blue">${fmtCurrency(p.items.reduce((a,i) => a + (i.qty * (i.buyPrice||0)), 0))}</span>
               </div>
             </div>`).join('')}
         </div>`}
@@ -75,7 +78,20 @@ function purchaseItemRow(item, i) {
   `;
 }
 
+function syncPurchaseItemsFromDOM() {
+  const b = getActiveBranch();
+  document.querySelectorAll('#purchase-items .item-row').forEach((row, i) => {
+    if (!purchaseItems[i]) return;
+    const sel = row.querySelector('.item-product');
+    const p   = b.inventory.find(x => x.id === sel.value);
+    purchaseItems[i].productId = sel.value;
+    purchaseItems[i].qty      = parseInt(row.querySelector('.item-qty').value)   || 0;
+    purchaseItems[i].buyPrice = parseFloat(row.querySelector('.item-price').value) || 0;
+    if (p) { purchaseItems[i].name = p.name; purchaseItems[i].unit = p.unit; }
+  });
+}
 function addPurchaseItemRow() {
+  syncPurchaseItemsFromDOM();
   purchaseItems.push({ productId:'', qty:0, buyPrice:0 });
   document.getElementById('purchase-items').innerHTML = purchaseItems.map((item,i) => purchaseItemRow(item,i)).join('');
 }
@@ -135,8 +151,10 @@ function openPurchaseDetail(id) {
           <span>${i.name} <span class="unit-tag">${i.unit}</span></span>
           <span>× ${i.qty}</span>
           <span>${i.buyPrice ? fmtCurrency(i.buyPrice) : '—'}</span>
+          <span class="blue">${i.buyPrice ? fmtCurrency(i.qty * i.buyPrice) : '—'}</span>
         </div>`).join('')}
     </div>
+    <div class="detail-total">Total: <span class="blue">${fmtCurrency(p.items.reduce((a,i) => a + (i.qty * (i.buyPrice||0)), 0))}</span></div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Close</button>
       <button class="btn-danger"    onclick="deletePurchase('${id}')">Delete</button>
@@ -146,6 +164,13 @@ function openPurchaseDetail(id) {
 
 function deletePurchase(id) {
   const b = getActiveBranch();
+  const p = b.purchases.find(x => x.id === id);
+  if (p) {
+    p.items.forEach(item => {
+      const idx = b.inventory.findIndex(x => x.id === item.productId);
+      if (idx >= 0) b.inventory[idx].qty = Math.max(0, b.inventory[idx].qty - item.qty);
+    });
+  }
   b.purchases = b.purchases.filter(x => x.id !== id);
   saveLocal(); closeModal();
   showToast('Purchase deleted', 'ok');

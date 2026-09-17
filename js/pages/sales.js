@@ -120,7 +120,20 @@ function updateSaleTotal() {
   const el = document.querySelector('.sale-total-val');
   if (el) el.textContent = fmtCurrency(total);
 }
+function syncSaleItemsFromDOM() {
+  const b = getActiveBranch();
+  document.querySelectorAll('#sale-items .item-row').forEach((row, i) => {
+    if (!saleItems[i]) return;
+    const sel = row.querySelector('.item-product');
+    const p   = b.inventory.find(x => x.id === sel.value);
+    saleItems[i].productId = sel.value;
+    saleItems[i].qty   = parseInt(row.querySelector('.item-qty').value)   || 0;
+    saleItems[i].price = parseFloat(row.querySelector('.item-price').value) || 0;
+    if (p) { saleItems[i].name = p.name; saleItems[i].unit = p.unit; }
+  });
+}
 function addSaleItemRow() {
+  syncSaleItemsFromDOM();
   saleItems.push({ productId:'', name:'', unit:'', qty:0, price:0 });
   document.getElementById('sale-items').innerHTML = saleItems.map((item,i) => saleItemRow(item,i)).join('');
 }
@@ -197,7 +210,8 @@ function openSaleDetail(id) {
 
 function deleteSale(id) {
   const b = getActiveBranch();
-  b.sales = b.sales.filter(x => x.id !== id);
+  b.sales  = b.sales.filter(x => x.id !== id);
+  b.debits = (b.debits || []).filter(x => x.saleId !== id);
   saveLocal(); closeModal();
   showToast('Sale deleted', 'ok');
   renderSales();

@@ -46,6 +46,7 @@ function renderBranchSelector() {
 
 function switchBranch(id) {
   setActiveBranch(id);
+  invFilter.search = ''; invFilter.company = '';
   renderBranchSelector();
   PAGES[activePage].render();
 }
@@ -66,9 +67,8 @@ document.addEventListener('click', e => {
 
 // ── SAVE ──────────────────────────────────────────────────────────────────
 async function saveAll() {
-  saveLocal();
   const ok = await ghSave();
-  showToast(ok ? '✓ Saved to GitHub' : '✓ Saved locally only', ok ? 'ok' : 'warn');
+  showToast(ok ? '✓ Saved to GitHub' : '✗ GitHub save failed — check token', ok ? 'ok' : 'err');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────

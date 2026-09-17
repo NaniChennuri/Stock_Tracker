@@ -27,6 +27,7 @@ function renderDashboard() {
       <div class="stat-card"><div class="stat-val blue">${b.companies.length}</div><div class="stat-lbl">Companies</div></div>
       <div class="stat-card"><div class="stat-val green">${todaySales.length}</div><div class="stat-lbl">Today's Sales</div></div>
       <div class="stat-card"><div class="stat-val amber">${fmtCurrency(todayTotal)}</div><div class="stat-lbl">Today's Revenue</div></div>
+      ${totalDebit > 0 ? `<div class="stat-card" style="cursor:pointer" onclick="showDebitsModal()"><div class="stat-val amber">${fmtCurrency(totalDebit)}</div><div class="stat-lbl">Outstanding Debit</div></div>` : ''}
     </div>
 
     <div class="dash-cards">
@@ -83,12 +84,13 @@ function renderDashboard() {
           <div class="dash-card-arrow">›</div>
         </div>`;
       }).join('')}
-      <div class="dash-card">
+      <div class="dash-card" onclick="showCombinedModal()">
         <div class="dash-card-icon">📊</div>
         <div class="dash-card-body">
           <div class="dash-card-title">Combined</div>
           <div class="dash-card-sub">${allProductCount} products · ${fmtCurrency(allSalesTotal)} revenue · ${fmtCurrency(allDebitTotal)} debit</div>
         </div>
+        <div class="dash-card-arrow">›</div>
       </div>
     </div>` : ''}
 
@@ -186,6 +188,30 @@ function showDebitsModal() {
           <td class="amber">${fmtCurrency(d.total-d.paid)}</td>
         </tr>`).join('')}
       </tbody>
+    </table>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>
+  `);
+}
+
+function showCombinedModal() {
+  const s = getState();
+  const threshold = s.settings.lowStockThreshold;
+  showModal(`
+    <div class="modal-header"><div class="modal-title">📊 Combined — All Branches</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <table class="info-table">
+      <thead><tr><th>Branch</th><th>Products</th><th>Revenue</th><th>Debit</th><th>Low Stock</th></tr></thead>
+      <tbody>${s.branches.map(br => {
+        const rev  = br.sales.reduce((a, x) => a + (x.total||0), 0);
+        const deb  = (br.debits||[]).filter(d => d.paid < d.total).reduce((a, d) => a + (d.total-d.paid), 0);
+        const low  = br.inventory.filter(p => p.qty <= threshold).length;
+        return `<tr>
+          <td>${br.name}</td>
+          <td>${br.inventory.length}</td>
+          <td class="green">${fmtCurrency(rev)}</td>
+          <td class="${deb>0?'amber':''}">${deb>0?fmtCurrency(deb):'—'}</td>
+          <td class="${low>0?'red':'green'}">${low>0?low:'✓'}</td>
+        </tr>`;
+      }).join('')}</tbody>
     </table>
     <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>
   `);

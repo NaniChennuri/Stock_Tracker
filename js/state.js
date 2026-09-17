@@ -130,7 +130,10 @@ function setState(data) {
       settings: data.settings || { lowStockThreshold: 3 },
     };
   } else {
-    state = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...data };
+    state = {
+      branches: data.branches || JSON.parse(JSON.stringify(DEFAULT_STATE.branches)),
+      settings: { ...DEFAULT_STATE.settings, ...(data.settings || {}) },
+    };
   }
   saveLocal();
 }

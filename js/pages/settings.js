@@ -116,7 +116,7 @@ function confirmDeleteBranch(id) {
 function deleteBranch(id) {
   const s = getState();
   s.branches = s.branches.filter(x => x.id !== id);
-  if (getActiveBranch().id === id || !s.branches.find(x => x.id === activeBranchId)) {
+  if (activeBranchId === id || !s.branches.find(x => x.id === activeBranchId)) {
     setActiveBranch(s.branches[0].id);
   }
   saveLocal(); closeModal();
@@ -140,6 +140,8 @@ function addCompany() {
 
 function deleteCompany(name) {
   const b = getActiveBranch();
+  const hasProducts = b.inventory.some(p => p.company === name);
+  if (hasProducts) { showToast(`Cannot remove — ${name} has products in inventory`, 'err'); return; }
   b.companies = b.companies.filter(c => c !== name);
   saveLocal();
   showToast('Company removed', 'ok');

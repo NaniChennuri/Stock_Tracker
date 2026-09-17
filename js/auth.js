@@ -81,8 +81,23 @@ async function bootApp() {
   document.getElementById('screen-app').style.display  = 'flex';
   showToast('Loading data…', 'info');
   const ok = await ghLoad();
-  if (!ok) showToast('Failed to load data from GitHub', 'err');
-  else showToast('✓ Data loaded', 'ok');
+  if (!ok) {
+    // fallback: load data.json from same origin (works when running locally)
+    try {
+      const res = await fetch('data.json');
+      if (res.ok) {
+        const data = await res.json();
+        setState(data);
+        showToast('✓ Data loaded (local)', 'ok');
+      } else {
+        showToast('Failed to load data', 'err');
+      }
+    } catch(e) {
+      showToast('Failed to load data', 'err');
+    }
+  } else {
+    showToast('✓ Data loaded', 'ok');
+  }
   renderApp();
 }
 
